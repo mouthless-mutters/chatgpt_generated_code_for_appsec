@@ -1,0 +1,72 @@
+import os
+import re
+
+# Patterns to match routes for different C# frameworks
+aspnet_route_pattern = re.compile(r"\[(HttpGet|HttpPost|HttpPut|HttpDelete|Route)\(\"(.*?)\"\)\]")
+minimal_api_pattern = re.compile(r"Map(Get|Post|Put|Delete)\(\"(.*?)\",")
+nancyfx_route_pattern = re.compile(r"(Get|Post)\[\"(.*?)\"\]")
+servicestack_route_pattern = re.compile(r"\[Route\(\"(.*?)\"\)\]")
+
+def find_routes(file_content, framework):
+    """
+    Extracts all routes from a given file content based on the C# framework.
+    :param file_content: String content of a C# file
+    :param framework: The web framework being used (ASP.NET, NancyFX, ServiceStack)
+    :return: List of routes found
+    """
+    if framework == "aspnet":
+        return aspnet_route_pattern.findall(file_content)
+    elif framework == "minimalapi":
+        return minimal_api_pattern.findall(file_content)
+    elif framework == "nancyfx":
+        return nancyfx_route_pattern.findall(file_content)
+    elif framework == "servicestack":
+        return servicestack_route_pattern.findall(file_content)
+    return []
+
+def search_routes_in_directory(root_dir):
+    """
+    Recursively searches for route definitions in C# files in a directory.
+    Handles ASP.NET, Minimal APIs, NancyFX, and ServiceStack frameworks.
+    :param root_dir: The root directory to search
+    """
+    for dirpath, _, filenames in os.walk(root_dir):
+        for filename in filenames:
+            if filename.endswith(".cs"):  # Only search in C# files
+                file_path = os.path.join(dirpath, filename)
+                
+                try:
+                    with open(file_path, "r", encoding="utf-8") as f:
+                        content = f.read()
+
+                        # Detect framework based on typical patterns or content
+                        if '[HttpGet' in content or '[Route' in content:
+                            framework = 'aspnet'
+                        elif 'MapGet' in content or 'MapPost' in content:
+                            framework = 'minimalapi'
+                        elif 'Get["' in content or 'Post["' in content:
+                            framework = 'nancyfx'
+                        elif '[Route("' in content:
+                            framework = 'servicestack'
+                        else:
+                            continue  # Skip if the framework can't be detected
+
+                        routes = find_routes(content, framework)
+                        
+                        if routes:
+                            print(f"\nIn file: {file_path} (Framework: {framework})")
+                            for route in routes:
+                                if isinstance(route, tuple):
+                                    # Handle the route tuple (method, path)
+                                    print(f"  Method: {route[0]}, Route: {route[1]}")
+                                else:
+                                    print(f"  Route: {route}")
+                except (UnicodeDecodeError, FileNotFoundError):
+                    # Skipping files that can't be read (like binary or restricted files)
+                    continue
+
+if __name__ == "__main__":
+    # Input directory path from the user
+    root_directory = input("Enter the project directory path: ")
+    # Search for routes
+    search_routes_in_directory(root_directory)
