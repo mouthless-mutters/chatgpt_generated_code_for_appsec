@@ -1,2 +1,2 @@
-# check_deserialize
-A script that downloads a repository and checks for patterns associated with insecure deserialization
+# chatgpt_generated_code_for_appsec
+Using ChatGPT to generate some code stubs for automated source code analyis
